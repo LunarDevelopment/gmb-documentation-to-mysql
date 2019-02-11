@@ -1,0 +1,20 @@
+{
+    "name": "lewis/gmb-documentation-to-mysql",
+    "description": "Parse GMB documentation into MySQL database schema.",
+    "type": "project",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Lewis Dimmick",
+            "email": "development.lunar@gmail.com"
+        }
+    ],
+    "autoload": {
+        "psr-4": {
+            "Src\\": "Src/"
+        }
+    },
+    "require": {
+        "doctrine/lexer": "^1.0"
+    }
+}
