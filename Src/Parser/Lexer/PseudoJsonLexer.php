@@ -19,14 +19,25 @@ use Doctrine\Common\Lexer\AbstractLexer;
 
 class PseudoJsonLexer extends AbstractLexer
 {
-    const T_UPPER =  1;
-    const T_LOWER =  2;
-    const T_NUMBER = 3;
+    const STRING =  "STRING";
+    const ARRAY_OF_STRING =  "ARRAY_OF_STRING";
+    const INT =  "INT";
+    const ENUM =  "ENUM";
+    const BOOLEAN =  "BOOLEAN";
+    const ARRAY_OF_INT =  "ARRAY_OF_INT";
+    const ONE_TO_ONE = "ONE_TO_ONE";
+    const ONE_TO_MANY = "ONE_TO_MANY";
 
     protected function getCatchablePatterns()
     {
         return array(
-            '[a-bA-Z0-9]',
+            '(?:\"|\')([^"]*)(?:\"|\')(?=:)(?:\:\s*)(?:\")?(true|false|[-0-9]+[\.]*[\d]*(?=,)|[0-9a-zA-Z\(\)\@\:\,\/\!\+\-\.\$\ \\\\\']*)(?!\s*{|\s*\[)(?:[^\s*{]|[^\s*\[])', // standard json key value pair
+            '(?:\"|\')([^"]*)(?:\"|\')(?=:)(?:\:\s*)(?:\")?(?:\[\n\s*)(?=string)(string)', // Array of strings
+            '(?:\"|\')([^"]*)(?:\"|\')(?=:)(?:\:\s*)?(?:\[\n\s*)(?=number)(number)', // Array of integers
+            // TODO: need to adjust these to handle JSON on one line, maybe just change the \n checks to be optional
+            '(?:\"|\')([^"]*)(?:\"|\')(?=:)(?:\:\s*)(?:\")?(?:\[\n\s*\{\n\s*)(?=object)(object\([a-zA-Z]*\))', // one to many relationships
+            '(?:\"|\')([^"]*)(?:\"|\')(?=:)(?:\:\s*)(?:\")?(?:\{\n\s*)(?=object)(object\([a-zA-Z]*\))' // one to one relationships
+
         );
     }
 
@@ -37,16 +48,38 @@ class PseudoJsonLexer extends AbstractLexer
 
     protected function getType(&$value)
     {
-        if (is_numeric($value)) {
-            return self::T_NUMBER;
-        }
+        $tempValue = trim(preg_replace('/[^\da-z:\(\[{]/i', '', $value));
 
-        if (strtoupper($value) === $value) {
-            return self::T_UPPER;
+        if (strpos($tempValue, ":string") !== FALSE) {
+            return self::STRING;
         }
-
-        if (strtolower($value) === $value) {
-            return self::T_LOWER;
+        if (strpos($tempValue, ":[string") !== FALSE) {
+            return self::ARRAY_OF_STRING;
         }
+        if (strpos($tempValue, ":[number") !== FALSE) {
+            return self::ARRAY_OF_INT;
+        }
+         if (strpos($tempValue, ":number") !== FALSE) {
+            return self::INT;
+        }
+         if (strpos($tempValue, ":boolean") !== FALSE) {
+            return self::BOOLEAN;
+        }
+         if (strpos($tempValue, ":enum(") !== FALSE) {
+            return self::ENUM;
+        }
+         if (strpos($tempValue, ":{") !== FALSE) {
+            return self::ONE_TO_ONE;
+        }
+        if (strpos($tempValue, ":[{") !== FALSE) {
+            return self::ONE_TO_MANY;
+        }
+        else
+            return false;
     }
+
+
+//preg_match_all(sprintf('/(%s)|%s/%s','/(?:\"|\')([^"]*)(?:\"|\')(?=:)(?:\:\s*)(?:\")?(?:\[\n\s*\{\n\s*)(?=object)(object\([a-zA-Z]*\))?/m', null, null ), $input, $matches, PREG_SET_ORDER, 0);
+
+
 }
